@@ -3,12 +3,11 @@ version: '3'
 volumes:
   prometheus_data: {}
   grafana_data: {}
+  portainer_data: {}
+
 
 networks:
   default:
-  traefik:
-    external:
-      name: containermgmt_traefik
 
 services:
 
@@ -22,7 +21,6 @@ services:
       - 9090:9090
     networks:
       - default
-      - traefik
     volumes:
       - ./prometheus/:/etc/prometheus/
       - prometheus_data:/prometheus
@@ -32,14 +30,12 @@ services:
       - '--storage.tsdb.retention=10d'
       - '--web.console.libraries=/usr/share/prometheus/console_libraries'
       - '--web.console.templates=/usr/share/prometheus/consoles'
-    # deploy:
-    #   placement:
-    #     constraints:
-    #       - node.hostname == ${HOSTNAME}
 
   node_exporter:
     image: napnap75/rpi-prometheus:node_exporter
     restart: unless-stopped
+    networks:
+      - default
     ports:
       - 9100
     volumes:
@@ -51,21 +47,30 @@ services:
       - '--path.sysfs=/host/sys'
       - --collector.filesystem.ignored-mount-points
       - "^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)"
-    # deploy:
-    #   mode: global
 
   arm_exporter:
     image: carlosedp/arm_exporter
     restart: unless-stopped
     ports:
       - 9243
-    # deploy:
-    #   mode: global
+
+  portainer:
+    image: portainer/portainer
+    restart: always
+    networks:
+      - default
+    ports:
+      - "9000:9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
 
 
   cadvisor:
     image: carlosedp/rpi-cadvisor
     restart: unless-stopped
+    networks:
+      - default
     ports:
       - 8082:8080
     volumes:
@@ -73,27 +78,24 @@ services:
       - /var/run:/var/run:rw
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
-    # deploy:
-    #   mode: global
     command:
       - --global_housekeeping_interval=30s
       - --housekeeping_interval=5s
       - --storage_duration=1m0s
 
-  # alertmanager:
-  #   image: napnap75/rpi-prometheus:alertmanager
-  #   restart: unless-stopped
-  #   ports:
-  #     - 9093:9093
-  #   volumes:
-  #     - ./alertmanager/:/etc/alertmanager/
-  #   command:
-  #     - '-config.file=/etc/alertmanager/config.yml'
-  #     - '-storage.path=/alertmanager'
-  #   deploy:
-  #     placement:
-  #       constraints:
-  #         - node.hostname == ${HOSTNAME}
+  alertmanager:
+    image: napnap75/rpi-prometheus:alertmanager
+    restart: unless-stopped
+    networks:
+      - default
+    ports:
+      - 9093:9093
+    volumes:
+      - ./alertmanager/:/etc/alertmanager/
+    command:
+      - '-config.file=/etc/alertmanager/config.yml'
+      - '-storage.path=/alertmanager'
+
 
   grafana:
     image: fg2it/grafana-armhf:v4.6.3
@@ -102,7 +104,6 @@ services:
     restart: unless-stopped
     networks:
       - default
-      - traefik
     ports:
       - 3000:3000
     volumes:
@@ -116,4 +117,3 @@ services:
       - "traefik.enable=true"
       - "traefik.port=3000"
       - "traefik.default.protocol=http"
-
