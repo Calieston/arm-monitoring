@@ -83,18 +83,18 @@ services:
       - --housekeeping_interval=5s
       - --storage_duration=1m0s
 
-  alertmanager:
-    image: napnap75/rpi-prometheus:alertmanager
-    restart: unless-stopped
-    networks:
-      - default
-    ports:
-      - 9093:9093
-    volumes:
-      - ./alertmanager/:/etc/alertmanager/
-    command:
-      - '-config.file=/etc/alertmanager/config.yml'
-      - '-storage.path=/alertmanager'
+  # alertmanager:
+  #   image: napnap75/rpi-prometheus:alertmanager
+  #   restart: unless-stopped
+  #   networks:
+  #     - default
+  #   ports:
+  #     - 9093:9093
+  #   volumes:
+  #     - ./alertmanager/:/etc/alertmanager/
+  #   command:
+  #     - '-config.file=/etc/alertmanager/config.yml'
+  #     - '-storage.path=/alertmanager'
 
 
   grafana:
